@@ -88,6 +88,11 @@ type RenderItem<T> = (
   imageInfo: RenderItemInfo<T>
 ) => React.ReactElement | null;
 
+type MoveToPointProps = {
+  x: number;
+  y: number;
+};
+
 type Props<T> = EventsCallbacks & {
   item: T;
   index: number;
@@ -116,7 +121,10 @@ type Props<T> = EventsCallbacks & {
   setRef: (index: number, value: ItemRef) => void;
 };
 
-type ItemRef = { reset: (animated: boolean) => void };
+type ItemRef = {
+  reset: (animated: boolean) => void;
+  moveTo: ({ x, y }: MoveToPointProps) => void;
+};
 
 const ResizableImage = React.memo(
   <T extends any>({
@@ -229,6 +237,16 @@ const ResizableImage = React.memo(
       return [-point, point];
     };
 
+    const moveToPoint = ({ x, y }: MoveToPointProps) => {
+      'worklet';
+      const posx = CENTER.x - x;
+      const posy = CENTER.y - y;
+      translation.x.value = withTiming(posx);
+      translation.y.value = withTiming(posy);
+      translation.x.value = withTiming(posx * scale.value);
+      translation.y.value = withTiming(posy * scale.value);
+    };
+
     const clampY = (value: number, newScale: number) => {
       'worklet';
       const newHeight = newScale * layout.y.value;
@@ -316,6 +334,7 @@ const ResizableImage = React.memo(
     useEffect(() => {
       setRef(index, {
         reset: (animated: boolean) => resetValues(animated),
+        moveTo: ({ x, y }: MoveToPointProps) => moveToPoint({ x, y }),
       });
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [index]);
@@ -858,6 +877,7 @@ const ResizableImage = React.memo(
 export type GalleryRef = {
   setIndex: (newIndex: number) => void;
   reset: (animated?: boolean) => void;
+  moveTo: ({ x, y }: MoveToPointProps) => void;
 };
 
 export type GalleryReactRef = React.Ref<GalleryRef>;
@@ -964,6 +984,9 @@ const GalleryComponent = <T extends any>(
     },
     reset(animated = false) {
       refs.current?.forEach((itemRef) => itemRef.reset(animated));
+    },
+    moveTo({ x, y }) {
+      refs.current?.[currentIndex.value].moveTo({ x, y });
     },
   }));
 
