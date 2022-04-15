@@ -253,8 +253,8 @@ const ResizableImage = React.memo(
       const scaledPosX = posX * toScale;
       const scaledPosY = posY * toScale;
 
-      const oobX = scaledWidth - scaledPosX * 2 < width;
-      const oobY = scaledHeight - scaledPosY * 2 < height;
+      const oobX = scaledWidth - scaledPosX * 2 < centre.x.value * 2;
+      const oobY = scaledHeight - scaledPosY * 2 < centre.y.value * 2;
 
       scale.value = withTiming(toScale);
       if (!oobX) {
