@@ -91,7 +91,7 @@ type RenderItem<T> = (
 type MoveToPointProps = {
   x: number;
   y: number;
-  scale: number;
+  scale?: number;
 };
 
 type Props<T> = EventsCallbacks & {
