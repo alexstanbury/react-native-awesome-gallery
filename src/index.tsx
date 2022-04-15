@@ -276,7 +276,8 @@ const ResizableImage = React.memo(
       });
 
       while (autoScale && (oobX || oobY)) {
-        return moveToPoint({ x, y, scale: toScale + 0.5 });
+        moveToPoint({ x, y, scale: toScale + 0.5 });
+        return;
       }
 
       scale.value = withTiming(toScale);
