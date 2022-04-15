@@ -159,10 +159,7 @@ const ResizableImage = React.memo(
     onScaleChangeRange,
     setRef,
   }: Props<T>) => {
-    const CENTER = {
-      x: width / 2,
-      y: height / 2,
-    };
+    const centre = useVector(0, 0);
 
     const offset = useVector(0, 0);
 
@@ -175,7 +172,13 @@ const ResizableImage = React.memo(
     const adjustedFocal = useVector(0, 0);
 
     const originalLayout = useVector(width, 0);
+
     const layout = useVector(width, 0);
+
+    useEffect(() => {
+      centre.x.value = width / 2;
+      centre.y.value = height / 2;
+    }, [width, height]);
 
     const isActive = useDerivedValue(() => currentIndex.value === index, [
       currentIndex,
@@ -210,8 +213,8 @@ const ResizableImage = React.memo(
     }: Record<'focalX' | 'focalY', number>) => {
       'worklet';
 
-      adjustedFocal.x.value = focalX - (CENTER.x + offset.x.value);
-      adjustedFocal.y.value = focalY - (CENTER.y + offset.y.value);
+      adjustedFocal.x.value = focalX - (centre.x.value + offset.x.value);
+      adjustedFocal.y.value = focalY - (centre.y.value + offset.y.value);
     };
 
     const resetValues = (animated = true) => {
@@ -239,8 +242,8 @@ const ResizableImage = React.memo(
 
     const moveToPoint = ({ x, y }: MoveToPointProps) => {
       'worklet';
-      const posx = CENTER.x - x;
-      const posy = CENTER.y - y;
+      const posx = centre.x.value - x;
+      const posy = centre.y.value - y;
       translation.x.value = withTiming(posx);
       translation.y.value = withTiming(posy);
       translation.x.value = withTiming(posx * scale.value);
@@ -397,8 +400,8 @@ const ResizableImage = React.memo(
 
     useEffect(() => {
       setImageDimensions({
-        width: originalLayout.x.value,
-        height: originalLayout.y.value,
+        width,
+        height,
       });
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [width, height]);
@@ -885,7 +888,6 @@ export type GalleryReactRef = React.Ref<GalleryRef>;
 type GalleryProps<T> = EventsCallbacks & {
   ref?: GalleryReactRef;
   data: T[];
-
   renderItem?: RenderItem<T>;
   keyExtractor?: (item: T, index: number) => string | number;
   initialIndex?: number;
@@ -975,20 +977,24 @@ const GalleryComponent = <T extends any>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [windowDimensions]);
 
-  useImperativeHandle(ref, () => ({
-    setIndex(newIndex: number) {
-      refs.current?.[index].reset(false);
-      setIndex(newIndex);
-      currentIndex.value = newIndex;
-      translateX.value = newIndex * -(dimensions.width + emptySpaceWidth);
-    },
-    reset(animated = false) {
-      refs.current?.forEach((itemRef) => itemRef.reset(animated));
-    },
-    moveToPoint({ x, y }) {
-      refs.current?.[currentIndex.value].moveToPoint({ x, y });
-    },
-  }));
+  useImperativeHandle(
+    ref,
+    () => ({
+      setIndex(newIndex: number) {
+        refs.current?.[index].reset(false);
+        setIndex(newIndex);
+        currentIndex.value = newIndex;
+        translateX.value = newIndex * -(dimensions.width + emptySpaceWidth);
+      },
+      reset(animated = false) {
+        refs.current?.forEach((itemRef) => itemRef.reset(animated));
+      },
+      moveToPoint({ x, y }) {
+        refs.current?.[currentIndex.value].moveToPoint({ x, y });
+      },
+    }),
+    [currentIndex, dimensions, containerDimensions]
+  );
 
   useEffect(() => {
     if (index >= data.length) {
