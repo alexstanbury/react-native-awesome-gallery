@@ -123,7 +123,7 @@ type Props<T> = EventsCallbacks & {
 
 type ItemRef = {
   reset: (animated: boolean) => void;
-  moveTo: ({ x, y }: MoveToPointProps) => void;
+  moveToPoint: ({ x, y }: MoveToPointProps) => void;
 };
 
 const ResizableImage = React.memo(
@@ -334,7 +334,7 @@ const ResizableImage = React.memo(
     useEffect(() => {
       setRef(index, {
         reset: (animated: boolean) => resetValues(animated),
-        moveTo: ({ x, y }: MoveToPointProps) => moveToPoint({ x, y }),
+        moveToPoint,
       });
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [index]);
@@ -877,7 +877,7 @@ const ResizableImage = React.memo(
 export type GalleryRef = {
   setIndex: (newIndex: number) => void;
   reset: (animated?: boolean) => void;
-  moveTo: ({ x, y }: MoveToPointProps) => void;
+  moveToPoint: ({ x, y }: MoveToPointProps) => void;
 };
 
 export type GalleryReactRef = React.Ref<GalleryRef>;
@@ -985,8 +985,8 @@ const GalleryComponent = <T extends any>(
     reset(animated = false) {
       refs.current?.forEach((itemRef) => itemRef.reset(animated));
     },
-    moveTo({ x, y }) {
-      refs.current?.[currentIndex.value].moveTo({ x, y });
+    moveToPoint({ x, y }) {
+      refs.current?.[currentIndex.value].moveToPoint({ x, y });
     },
   }));
 
