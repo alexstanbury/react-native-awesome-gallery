@@ -91,6 +91,7 @@ type RenderItem<T> = (
 type MoveToPointProps = {
   x: number;
   y: number;
+  scale: number;
 };
 
 type Props<T> = EventsCallbacks & {
@@ -123,7 +124,7 @@ type Props<T> = EventsCallbacks & {
 
 type ItemRef = {
   reset: (animated: boolean) => void;
-  moveToPoint: ({ x, y }: MoveToPointProps) => void;
+  moveToPoint: ({ x, y, scale }: MoveToPointProps) => void;
 };
 
 const ResizableImage = React.memo(
@@ -240,14 +241,32 @@ const ResizableImage = React.memo(
       return [-point, point];
     };
 
-    const moveToPoint = ({ x, y }: MoveToPointProps) => {
+    const moveToPoint = ({ x, y, scale: newScale }: MoveToPointProps) => {
       'worklet';
-      const posx = centre.x.value - x;
-      const posy = centre.y.value - y;
-      translation.x.value = withTiming(posx);
-      translation.y.value = withTiming(posy);
-      translation.x.value = withTiming(posx * scale.value);
-      translation.y.value = withTiming(posy * scale.value);
+      const posX = centre.x.value - x;
+      const posY = centre.y.value - y;
+
+      const toScale = newScale || scale.value;
+
+      const scaledWidth = layout.x.value * toScale;
+      const scaledHeight = layout.y.value * toScale;
+      const scaledPosX = posX * toScale;
+      const scaledPosY = posY * toScale;
+
+      const oobX = scaledWidth - scaledPosX * 2 < width;
+      const oobY = scaledHeight - scaledPosY * 2 < height;
+
+      scale.value = withTiming(toScale);
+      if (!oobX) {
+        translation.x.value = withTiming(posX);
+        translation.x.value = withTiming(scaledPosX);
+        offset.x.value = withTiming(0);
+      }
+      if (!oobY) {
+        translation.y.value = withTiming(posY);
+        translation.y.value = withTiming(scaledPosY);
+        offset.y.value = withTiming(0);
+      }
     };
 
     const clampY = (value: number, newScale: number) => {
@@ -266,6 +285,7 @@ const ResizableImage = React.memo(
       const newWidth = newScale * layout.x.value;
       const point = (newWidth - width) / 2;
 
+      console.log({ newWidth, width, point });
       if (newWidth < width) {
         return 0;
       }
@@ -880,7 +900,7 @@ const ResizableImage = React.memo(
 export type GalleryRef = {
   setIndex: (newIndex: number) => void;
   reset: (animated?: boolean) => void;
-  moveToPoint: ({ x, y }: MoveToPointProps) => void;
+  moveToPoint: ({ x, y, scale }: MoveToPointProps) => void;
 };
 
 export type GalleryReactRef = React.Ref<GalleryRef>;
@@ -989,8 +1009,8 @@ const GalleryComponent = <T extends any>(
       reset(animated = false) {
         refs.current?.forEach((itemRef) => itemRef.reset(animated));
       },
-      moveToPoint({ x, y }) {
-        refs.current?.[currentIndex.value].moveToPoint({ x, y });
+      moveToPoint({ x, y, scale }) {
+        refs.current?.[currentIndex.value].moveToPoint({ x, y, scale });
       },
     }),
     [currentIndex, dimensions, containerDimensions]
