@@ -92,6 +92,7 @@ type MoveToPointProps = {
   x: number;
   y: number;
   scale?: number;
+  autoScale?: boolean;
 };
 
 type Props<T> = EventsCallbacks & {
@@ -124,7 +125,7 @@ type Props<T> = EventsCallbacks & {
 
 type ItemRef = {
   reset: (animated: boolean) => void;
-  moveToPoint: ({ x, y, scale }: MoveToPointProps) => void;
+  moveToPoint: ({ x, y, scale, autoScale }: MoveToPointProps) => void;
 };
 
 const ResizableImage = React.memo(
@@ -241,8 +242,7 @@ const ResizableImage = React.memo(
       return [-point, point];
     };
 
-    const moveToPoint = ({ x, y, scale: newScale }: MoveToPointProps) => {
-      'worklet';
+    const checkBounds = ({ x, y, scale: newScale }: MoveToPointProps) => {
       const posX = centre.x.value - x;
       const posY = centre.y.value - y;
 
@@ -255,6 +255,29 @@ const ResizableImage = React.memo(
 
       const oobX = scaledWidth - scaledPosX * 2 < centre.x.value * 2;
       const oobY = scaledHeight - scaledPosY * 2 < centre.y.value * 2;
+
+      return { oobX, oobY, posX, posY, scaledPosX, scaledPosY };
+    };
+
+    const moveToPoint = ({
+      x,
+      y,
+      scale: newScale,
+      autoScale = true,
+    }: MoveToPointProps) => {
+      'worklet';
+
+      const toScale = newScale || scale.value;
+
+      const { oobX, oobY, posX, posY, scaledPosX, scaledPosY } = checkBounds({
+        x,
+        y,
+        scale: toScale,
+      });
+
+      while (autoScale && (oobX || oobY)) {
+        return moveToPoint({ x, y, scale: toScale + 0.5 });
+      }
 
       scale.value = withTiming(toScale);
       if (!oobX) {
@@ -900,7 +923,7 @@ const ResizableImage = React.memo(
 export type GalleryRef = {
   setIndex: (newIndex: number) => void;
   reset: (animated?: boolean) => void;
-  moveToPoint: ({ x, y, scale }: MoveToPointProps) => void;
+  moveToPoint: ({ x, y, scale, autoScale }: MoveToPointProps) => void;
 };
 
 export type GalleryReactRef = React.Ref<GalleryRef>;
@@ -1009,8 +1032,13 @@ const GalleryComponent = <T extends any>(
       reset(animated = false) {
         refs.current?.forEach((itemRef) => itemRef.reset(animated));
       },
-      moveToPoint({ x, y, scale }) {
-        refs.current?.[currentIndex.value].moveToPoint({ x, y, scale });
+      moveToPoint({ x, y, scale, autoScale }) {
+        refs.current?.[currentIndex.value].moveToPoint({
+          x,
+          y,
+          scale,
+          autoScale,
+        });
       },
     }),
     [currentIndex, dimensions, containerDimensions]
